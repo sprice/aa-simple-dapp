@@ -8,6 +8,10 @@ import { WalletClient, createWalletClient, custom } from "viem";
 
 export const useMagicSigner = () => {
   const [magicClient, setMagicClient] = useState<WalletClient | null>(null);
+  const [magicSigner, setMagicSigner] = useState<SmartAccountSigner | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
   const magic = useMemo(() => {
     if (typeof window !== "undefined") {
@@ -35,10 +39,21 @@ export const useMagicSigner = () => {
     handler();
   }, [magic]);
 
-  const magicSigner: SmartAccountSigner = new WalletClientSigner(
-    magicClient as any,
-    "magic"
-  );
+  useEffect(() => {
+    if (magicClient) {
+      const signer: SmartAccountSigner = new WalletClientSigner(
+        magicClient as any,
+        "magic"
+      );
+      setMagicSigner(signer);
+    }
+  }, [magicClient]);
 
-  return { magic, signer: magicSigner };
+  useEffect(() => {
+    if (magic && magicSigner) {
+      setIsLoading(false);
+    }
+  }, [magic, magicSigner]);
+
+  return { magic, signer: magicSigner, isLoading };
 };

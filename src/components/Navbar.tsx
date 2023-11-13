@@ -1,42 +1,19 @@
 "use client";
 import { useWalletContext } from "@/context/wallet";
 import { useCallback, useState } from "react";
-import { useMagicSigner } from "@/hooks/useMagicSigner";
 
 export default function Navbar() {
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>("");
-
-  const { magic } = useMagicSigner();
 
   const { isLoggedIn, login, logout, username, scaAddress } =
     useWalletContext();
 
-  const openModal = useCallback(async () => {
-    if (!magic) return;
-    setIsLoggingIn(true);
-    const accounts = await magic.wallet.connectWithUI();
-    console.log("accounts", accounts);
-  }, [magic]);
-
-  const closeModal = useCallback(() => {
-    setIsLoggingIn(false);
-  }, []);
-
-  const onEmailChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault();
-      setEmail(e.target.value);
-    },
-    []
-  );
-
   const handleLogin = useCallback(async () => {
-    await login(email);
+    setIsLoggingIn(true);
+    await login();
     setIsLoggingIn(false);
-    setEmail("");
-  }, [login, email]);
+  }, [login]);
 
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
@@ -59,7 +36,7 @@ export default function Navbar() {
         ) : (
           <button
             disabled={isLoggingIn}
-            onClick={openModal}
+            onClick={handleLogin}
             className="btn text-white bg-gradient-1 disabled:opacity-25 disabled:text-white transition ease-in-out duration-500 transform hover:scale-110 max-md:w-full"
           >
             {isLoggingIn ? "Logging In" : "Log In"}
@@ -80,32 +57,6 @@ export default function Navbar() {
           </button>
         )}
       </div>
-
-      {/* login pop-up modal */}
-      {/* <dialog className={`modal ${isLoggingIn && "modal-open"}`}>
-        <div className="modal-box flex flex-col gap-[12px]">
-          <h3 className="font-bold text-lg">Enter your email!</h3>
-          <input
-            placeholder="email"
-            onChange={onEmailChange}
-            className="input border border-solid border-white"
-          />
-          <div className="flex flex-row justify-end max-md:flex-col flex-wrap gap-[12px]">
-            <button
-              onClick={handleLogin}
-              className="btn bg-gradient-1 text-white transition ease-in-out duration-500 transform hover:scale-110"
-            >
-              Login
-            </button>
-            <button
-              onClick={closeModal}
-              className="btn bg-gradient-2 text-white transition ease-in-out duration-500 transform hover:scale-110"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </dialog> */}
     </div>
   );
 }

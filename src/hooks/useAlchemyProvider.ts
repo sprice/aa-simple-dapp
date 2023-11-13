@@ -13,6 +13,7 @@ import { useCallback, useState } from "react";
 import { Address } from "viem";
 
 export const useAlchemyProvider = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [provider, setProvider] = useState<AlchemyProvider>(
     new AlchemyProvider({
       chain,
@@ -38,6 +39,7 @@ export const useAlchemyProvider = () => {
         });
 
       setProvider(connectedProvider);
+      setIsLoading(false);
       return connectedProvider;
     },
     [provider]
@@ -50,5 +52,10 @@ export const useAlchemyProvider = () => {
     return disconnectedProvider;
   }, [provider]);
 
-  return { provider, connectProviderToAccount, disconnectProviderFromAccount };
+  return {
+    provider,
+    connectProviderToAccount,
+    disconnectProviderFromAccount,
+    isLoading,
+  };
 };

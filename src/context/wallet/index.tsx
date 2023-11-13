@@ -11,10 +11,11 @@ import {
   useEffect,
   useState,
 } from "react";
+import { shortAddress } from "@/utils";
 
 type WalletContextProps = {
   // Functions
-  login: (email: string) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
 
   // Properties
@@ -46,34 +47,35 @@ export const WalletContextProvider = ({
   const [username, setUsername] = useState<string>();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  const { magic, signer } = useMagicSigner();
+  const { magic, signer, isLoading: isSignerLoading } = useMagicSigner();
 
-  const { provider, connectProviderToAccount, disconnectProviderFromAccount } =
-    useAlchemyProvider();
+  const {
+    provider,
+    connectProviderToAccount,
+    disconnectProviderFromAccount,
+    isLoading: isProviderLoading,
+  } = useAlchemyProvider();
 
-  const login = useCallback(
-    async (email: string) => {
-      if (!magic || !magic.user || !signer) {
-        console.error("Magic not initialized");
-        return;
-      }
-      const didToken = await magic.auth.loginWithEmailOTP({
-        email,
-      });
-      const metadata = await magic.user.getMetadata();
-      if (!didToken || !metadata.publicAddress || !metadata.email) {
-        console.error("Magic login failed");
-        return;
-      }
+  const login = useCallback(async () => {
+    if (isSignerLoading) return;
+    if (!magic || !magic.user || !signer) {
+      console.error("Magic not initialized");
+      return;
+    }
+    const accounts = await magic.wallet.connectWithUI();
+    const info = await magic.user.getInfo();
+    if (!accounts.length || !info.publicAddress) {
+      console.error("Magic login failed");
+      return;
+    }
 
-      setIsLoggedIn(true);
-      connectProviderToAccount(signer);
-      setUsername(metadata.email);
-      setOwnerAddress(metadata.publicAddress as Address);
-      setScaAddress(await provider.getAddress());
-    },
-    [magic, connectProviderToAccount, signer, provider]
-  );
+    setIsLoggedIn(true);
+    connectProviderToAccount(signer);
+    const sca = await provider.getAddress();
+    setUsername(shortAddress(sca));
+    setOwnerAddress(info.publicAddress as Address);
+    setScaAddress(sca);
+  }, [magic, connectProviderToAccount, signer, isSignerLoading, provider]);
 
   const logout = useCallback(async () => {
     if (!magic || !magic.user) {
@@ -95,6 +97,7 @@ export const WalletContextProvider = ({
 
   useEffect(() => {
     async function fetchData() {
+      if (isSignerLoading) return;
       if (!magic || !magic.user || !signer) {
         console.error("Magic not initialized");
         return;
@@ -106,19 +109,20 @@ export const WalletContextProvider = ({
         return;
       }
 
-      const metadata = await magic.user.getMetadata();
-      if (!metadata.publicAddress || !metadata.email) {
+      const info = await magic.user.getInfo();
+      if (!info.publicAddress) {
         throw new Error("Magic login failed");
       }
 
       setIsLoggedIn(isLoggedIn);
       connectProviderToAccount(signer);
-      setUsername(metadata.email);
-      setOwnerAddress(metadata.publicAddress as Address);
-      setScaAddress(await provider.getAddress());
+      const sca = await provider.getAddress();
+      setUsername(shortAddress(sca));
+      setOwnerAddress(info.publicAddress as Address);
+      setScaAddress(sca);
     }
     fetchData();
-  }, [magic, connectProviderToAccount, signer, provider]);
+  }, [magic, connectProviderToAccount, signer, provider, isSignerLoading]);
 
   return (
     <WalletContext.Provider
